@@ -1,0 +1,300 @@
+<link rel="stylesheet" href="style.css"></link>
+<script src="//ajax.googleapis.com/ajax/libs/jquery/1.8.0/jquery.min.js" type="text/javascript"></script>
+<script src="http://10.1.1.107:81/socket.io/socket.io.js" type="text/javascript"></script>
+<script src="underscore-min.js" type="text/javascript"></script>
+<script type="text/javascript">
+
+$(document).ready(function() {
+  var socket = io.connect(top.location.protocol+top.location.host+':81');
+  var BS=3;
+  var roomno;
+
+  socket.emit('register', randomUUID());
+
+  socket.on('ready', function(data) {
+    roomno = data.id;
+    if(data.pos==1) {
+      bindHandlers();
+    }
+    else {
+      $("#turn").html("Opponent Turn");
+    }
+    bindChatHandler();
+    $("#all").show();
+  });
+
+  socket.on('move', function(data) {
+    drawLine(data, true);
+  });
+
+  socket.on('msg', function(data) {
+    $("#chat .msg").append("<br/>Opponent: "+data);
+  });
+
+  socket.on('stats',function(data) {
+    $("#stats").html(JSON.stringify(data));
+  });
+
+  socket.on('disconnect', function () {
+    io.sockets.emit('user disconnected');
+  });
+
+  function bindHandlers() {
+    $("#turn").html("It's Your Turn");
+    $('.hline').bind('click', function(evt) {
+      drawLine(evt.target.id, false);
+    });
+
+    $('.vline').bind('click', function(evt) {
+      drawLine(evt.target.id, false);
+    });
+  }
+
+  function bindChatHandler() {
+    $('#chat .send').bind('click',function() {
+      sendMessage();
+    });
+
+    $('#chat .textbox').keyup(function(event) {
+      if(event.keyCode == 13){
+        sendMessage();
+      }
+    });
+  }
+
+  function unbindHandlers() {
+    $("#turn").html("Waiting for Opponent");
+    $('.hline').unbind('click');
+    $('.vline').unbind('click');
+  }
+
+  function sendMessage() {
+    var text = $('#chat .textbox').val();
+    if(text != "") {
+      $("#chat .msg").append("<br/>You: "+text);
+      socket.emit('msg', {msg: text});
+      $('#chat .textbox').val("");
+    }
+  }
+
+  function drawLine(id, isOpponent) {
+    var color = 'gray';
+    //if(isOpponent)  color = 'green';
+
+
+    $("#"+id).css('background',color);
+    $("#"+id).addClass('filled');
+    var keepTurn = checkNearby(id, isOpponent);
+
+    if(isOpponent) {
+      unbindHandlers();
+      if(!keepTurn) bindHandlers();
+    }
+    else {
+      unbindHandlers();
+      socket.emit('move',{id:roomno, pos:id});
+      if(keepTurn)  bindHandlers();
+    }
+  }
+
+  function checkNearby(id, isOpponent) {
+    var t,b,tl,tr,bl,br;
+    var l,r,tl,tr,bl,br;
+    var row = parseInt(id.charAt(1),10);
+    var col = parseInt(id.charAt(3),10);
+    var len = (row%2==0)? BS: BS+1;
+    var box_filled = false;
+
+    //vertical line was clicked
+    if(row%2==0) {
+      if(col<BS+1) { r="r"+row+"c"+(col+1); tr="r"+(row-1)+"c"+col; br="r"+(row+1)+"c"+col;}
+      if(col>1) { l="r"+row+"c"+(col-1); tl="r"+(row-1)+"c"+(col-1); bl="r"+(row+1)+"c"+(col-1);}
+      if(typeof r != "undefined")
+      {
+        if(($("#"+r).hasClass('filled')) && $("#"+tr).hasClass('filled') &&
+          $("#"+br).hasClass('filled'))
+        {
+          var box = "b"+(row/2)+"c"+col;
+          box_filled = fillBox(box, isOpponent);
+        }
+      }
+
+      if(typeof l != "undefined")
+      {
+        if(($("#"+l).hasClass('filled')) && $("#"+tl).hasClass('filled') &&
+          $("#"+bl).hasClass('filled'))
+        {
+          var box = "b"+(row/2)+"c"+(col-1);
+          box_filled = fillBox(box, isOpponent);
+        }
+      }
+    }
+    else { //horizontal line was clicked
+      if(row<BS*2+1){ b="r"+(row+2)+"c"+col; bl="r"+(row+1)+"c"+col; br="r"+(row+1)+"c"+(col+1);}
+      if(row>1){t="r"+(row-2)+"c"+col; tl="r"+(row-1)+"c"+col; tr="r"+(row-1)+"c"+(col+1);}
+
+      if(typeof b != "undefined")
+      {
+        if(($("#"+b).hasClass('filled')) && $("#"+bl).hasClass('filled') &&
+          $("#"+br).hasClass('filled'))
+        {
+          var box = "b"+(row+1)/2+"c"+col;
+          box_filled = fillBox(box, isOpponent);
+        }
+      }
+
+      if(typeof t != "undefined")
+      {
+        if(($("#"+t).hasClass('filled')) && $("#"+tl).hasClass('filled') &&
+          $("#"+tr).hasClass('filled'))
+        {
+          var box = "b"+(row-1)/2+"c"+col;
+          box_filled = fillBox(box, isOpponent);
+        }
+      }
+    }
+    return box_filled;
+  }
+
+  function fillBox(box, isOpponent) {
+    $("#"+box).css('background','yellow');
+    $("#"+box).html(isOpponent?"opponent":"you");
+    if(isOpponent) {
+      curr_score = parseInt($("#score .opponent").html(),10);
+      $("#score .opponent").html(curr_score+1);
+    }
+    else {
+      curr_score = parseInt($("#score .yours").html(),10);
+      $("#score .yours").html(curr_score+1);
+    }
+    return true;
+  }
+
+});
+
+/* randomUUID.js - Version 1.0
+*
+* Copyright 2008, Robert Kieffer
+*
+* This software is made available under the terms of the Open Software License
+* v3.0 (available here: http://www.opensource.org/licenses/osl-3.0.php )
+*
+* The latest version of this file can be found at:
+* http://www.broofa.com/Tools/randomUUID.js
+*
+* For more information, or to comment on this, please go to:
+* http://www.broofa.com/blog/?p=151
+*/
+
+/**
+* Create and return a "version 4" RFC-4122 UUID string.
+*/
+function randomUUID() {
+  var s = [], itoh = '0123456789ABCDEF';
+
+  // Make array of random hex digits. The UUID only has 32 digits in it, but we
+  // allocate an extra items to make room for the '-'s we'll be inserting.
+  for (var i = 0; i <36; i++) s[i] = Math.floor(Math.random()*0x10);
+
+  // Conform to RFC-4122, section 4.4
+  s[14] = 4;  // Set 4 high bits of time_high field to version
+  s[19] = (s[19] & 0x3) | 0x8;  // Specify 2 high bits of clock sequence
+
+  // Convert to hex chars
+  for (var i = 0; i <36; i++) s[i] = itoh[s[i]];
+
+  // Insert '-'s
+  s[8] = s[13] = s[18] = s[23] = '-';
+
+  return s.join('');
+}
+</script>
+
+
+<div id="stats"></div>
+<div id="turn">Waiting for player to join</div>
+<div id="all" class="clearfix">
+  <div id="score">
+    You: <span class="yours">0</span> &nbsp;
+    Opponent: <span class="opponent">0</span>
+  </div>
+
+  <div id="board">
+    <div class="line-row">
+      <div class="dot"></div>
+      <div class="hline" id="r1c1"></div>
+      <div class="dot"></div>
+      <div class="hline" id="r1c2"></div>
+      <div class="dot"></div>
+      <div class="hline" id="r1c3"></div>
+      <div class="dot"></div>
+    </div>
+
+    <div class="block-row">
+      <div class="vline" id="r2c1"></div>
+      <div class="box" id="b1c1"></div>
+      <div class="vline" id="r2c2"></div>
+      <div class="box" id="b1c2"></div>
+      <div class="vline" id="r2c3"></div>
+      <div class="box" id="b1c3"></div>
+      <div class="vline" id="r2c4"></div>
+    </div>
+
+    <div class="line-row">
+      <div class="dot"></div>
+      <div class="hline" id="r3c1"></div>
+      <div class="dot"></div>
+      <div class="hline" id="r3c2"></div>
+      <div class="dot"></div>
+      <div class="hline" id="r3c3"></div>
+      <div class="dot"></div>
+    </div>
+
+    <div class="block-row">
+      <div class="vline" id="r4c1"></div>
+      <div class="box" id="b2c1"></div>
+      <div class="vline" id="r4c2"></div>
+      <div class="box" id="b2c2"></div>
+      <div class="vline" id="r4c3"></div>
+      <div class="box" id="b2c3"></div>
+      <div class="vline" id="r4c4"></div>
+    </div>
+
+    <div class="line-row">
+      <div class="dot"></div>
+      <div class="hline" id="r5c1"></div>
+      <div class="dot"></div>
+      <div class="hline" id="r5c2"></div>
+      <div class="dot"></div>
+      <div class="hline" id="r5c3"></div>
+      <div class="dot"></div>
+    </div>
+
+    <div class="block-row">
+      <div class="vline" id="r6c1"></div>
+      <div class="box" id="b3c1"></div>
+      <div class="vline" id="r6c2"></div>
+      <div class="box" id="b3c2"></div>
+      <div class="vline" id="r6c3"></div>
+      <div class="box" id="b3c3"></div>
+      <div class="vline" id="r6c4"></div>
+    </div>
+
+    <div class="line-row">
+      <div class="dot"></div>
+      <div class="hline" id="r7c1"></div>
+      <div class="dot"></div>
+      <div class="hline" id="r7c2"></div>
+      <div class="dot"></div>
+      <div class="hline" id="r7c3"></div>
+      <div class="dot"></div>
+    </div>
+  </div>
+
+  <div id="chat">
+    <div class="msg">
+    </div>
+    <input class="textbox" type="text"/>
+    <input type="button" class="send" value="Send"/>
+  </div>
+</div>
