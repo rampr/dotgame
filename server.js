@@ -11,7 +11,20 @@ var ee = new events.EventEmitter;
 var roomno=1;
 var playersCount = 0;
 var gamesStarted = 0;
-server.listen(81);
+server.listen(3000);
+
+app.get('/', function (req, res) {
+  res.sendfile(__dirname + req.url);
+});
+
+//TODO: There should be a better way
+app.get('/static/underscore-min.js', function (req, res) {
+  res.sendfile(__dirname + req.url);
+});
+
+app.get('/static/style.css', function (req, res) {
+  res.sendfile(__dirname + req.url);
+});
 
 ee.on('match', function() {
   console.log('matching players');
@@ -37,6 +50,7 @@ function matchPlayers() {
 io.sockets.on('connection', function (socket) {
 
   socket.on('register', function(data) {
+    console.log('register');
     //socket.set('nickname', data.nick);
     readyQueue.enqueue(data.id,socket);
     ee.emit('match');
