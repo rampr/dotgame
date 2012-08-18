@@ -8,11 +8,32 @@ $(document).ready(function() {
   var socket = io.connect(top.location.protocol+top.location.host+':81');
   var BS=3;
   var roomno;
+  var pos;
 
-  socket.emit('register', randomUUID());
+  /*
+  $("#nick .btn").click(function(){
+    register();
+  });
 
+  $('#nick .txt').keyup(function(event) {
+    if(event.keyCode == 13) {
+      register();
+    }
+  });
+
+  function register() {
+    var text = $('#nick .txt').val();
+    if(text != "") {
+      socket.emit('register', {nick:text, id:randomUUID()});
+    }
+  }
+  */
+
+  socket.emit('register', {id:randomUUID()});
   socket.on('ready', function(data) {
     roomno = data.id;
+    pos = data.pos;
+    $("#startmessage").hide();
     if(data.pos==1) {
       bindHandlers();
     }
@@ -27,7 +48,7 @@ $(document).ready(function() {
     drawLine(data, true);
   });
 
-  socket.on('msg', function(data) {
+  socket.on('message', function(data) {
     $("#chat .msg").append("<br/>Opponent: "+data);
   });
 
@@ -72,17 +93,17 @@ $(document).ready(function() {
     var text = $('#chat .textbox').val();
     if(text != "") {
       $("#chat .msg").append("<br/>You: "+text);
-      socket.emit('msg', {msg: text});
+      socket.emit('message', {msg: text});
       $('#chat .textbox').val("");
     }
   }
 
   function drawLine(id, isOpponent) {
-    var color = 'gray';
+    //var color = 'gray';
     //if(isOpponent)  color = 'green';
 
 
-    $("#"+id).css('background',color);
+    //$("#"+id).css('background',color);
     $("#"+id).addClass('filled');
     var keepTurn = checkNearby(id, isOpponent);
 
@@ -157,13 +178,15 @@ $(document).ready(function() {
   }
 
   function fillBox(box, isOpponent) {
-    $("#"+box).css('background','yellow');
+
     $("#"+box).html(isOpponent?"opponent":"you");
     if(isOpponent) {
+      $("#"+box).addClass('filled opponent');
       curr_score = parseInt($("#score .opponent").html(),10);
       $("#score .opponent").html(curr_score+1);
     }
     else {
+      $("#"+box).addClass('filled you');
       curr_score = parseInt($("#score .yours").html(),10);
       $("#score .yours").html(curr_score+1);
     }
@@ -212,12 +235,18 @@ function randomUUID() {
 
 
 <div id="stats"></div>
-<div id="turn">Waiting for player to join</div>
+<!--div id="nick">
+  <input type="textbox" class="txt"/>
+  <input type="button" class="btn" value="Send Nick"/>
+</div-->
+<div id="startmessage">Waiting for player to join</div>
 <div id="all" class="clearfix">
   <div id="score">
-    You: <span class="yours">0</span> &nbsp;
+    You: <span class="yours">0</span> VS
     Opponent: <span class="opponent">0</span>
   </div>
+
+  <div id="turn">Waiting for player to join</div>
 
   <div id="board">
     <div class="line-row">
@@ -295,6 +324,6 @@ function randomUUID() {
     <div class="msg">
     </div>
     <input class="textbox" type="text"/>
-    <input type="button" class="send" value="Send"/>
+    <input type="button" class="send btn" value="Send"/>
   </div>
 </div>

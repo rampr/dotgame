@@ -24,6 +24,7 @@ function matchPlayers() {
   if(_.isEmpty(players)) return;
   var pos = 1;
   _.each(players, function(socket) {
+    //console.log(socket.get('nickname'));
     socket.join(roomno);
     socket.emit('ready',{pos:pos++,id:roomno});
   });
@@ -36,7 +37,8 @@ function matchPlayers() {
 io.sockets.on('connection', function (socket) {
 
   socket.on('register', function(data) {
-    readyQueue.enqueue(data,socket);
+    //socket.set('nickname', data.nick);
+    readyQueue.enqueue(data.id,socket);
     ee.emit('match');
     playersCount++;
     //socket.emit('stats',{players:playersCount,games:gamesStarted});
@@ -44,9 +46,9 @@ io.sockets.on('connection', function (socket) {
     io.sockets.emit('stats',{players:playersCount,games:gamesStarted});
   });
 
-  socket.on('msg', function (data) {
+  socket.on('message', function (data) {
     console.log(data);
-    socket.broadcast.to(data.id).emit('msg', data.msg);
+    socket.broadcast.to(data.id).emit('message', data.msg);
   });
 
   socket.on('move', function (data) {
@@ -54,5 +56,7 @@ io.sockets.on('connection', function (socket) {
   });
 
   socket.on('disconnect', function (data) {
+    playersCount--;
+    io.sockets.emit('stats',{players:playersCount,games:gamesStarted});
   });
 });

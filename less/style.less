@@ -2,26 +2,55 @@
 
 #all {
   display: none;
+  border: 2px solid #D9ECFC;
+  .box-shadow(0 0 1px 1px #EEE);
+  margin: 0 auto;
+  width: 728px;
+  .border-radius(5px);
+
+  #score {
+    float:left;
+    margin: 0 80px;
+  }
+
+  #turn {
+    float: right;
+    margin: 0 80px;
+  }
+
   #board {
+    clear: both;
     margin: 10px;
     float:left;
   }
 
   #chat {
     float:left;
-    border: 1px: solid;
 
     .msg {
-      width: 200px;
-      height: 300px;
+      width: 300px;
+      height: 400px;
       background-color: #EEE;
       overflow-y: auto;
+    }
+
+    .textbox {
+      margin-bottom:0;
+      height: 30px;
+    }
+
+    .send {
+      width: 85px;
     }
   }
 }
 
+
+
 @box-width: 20px;
-@box-height: 70px;
+@box-height: 100px;
+@yourcolor: green;
+@opponentcolor: yellow;
 
 .line-row {
   .clearfix;
@@ -46,6 +75,10 @@
       background-color: red;
       cursor: pointer;
     }
+
+    &.filled {
+      background-color: black;
+    }
   }
 
 }
@@ -63,6 +96,10 @@
       background-color: red;
       cursor: pointer;
     }
+
+    &.filled {
+      background-color: black;
+    }
   }
 
   .box {
@@ -70,6 +107,14 @@
     width: @box-height+2;
     height: @box-height;
     border: 1px solid transparent;
-  }
 
+    &.you {
+      background-color: @yourcolor;
+    }
+
+    &.opponent {
+      background-color: @opponentcolor;
+    }
+
+  }
 }
